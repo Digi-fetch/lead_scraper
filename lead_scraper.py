@@ -32,10 +32,11 @@ class Indeed(object):
             tree = html.fromstring(page.text)
             jobtitles = tree.xpath('//h2[@class="jobtitle"]/a/text()')
             print jobtitles
+            # jobtitles needs to be passed as tuples not list
+            jobtitles = ((job.lstrip(),) for job in jobtitles)
             # used to cycle through pages i.e: 10=page2 20=page3 etc...
             count += 10
-            # jobtitles is too large of a list so I need to find a way to add 1 job at a time
-            Database.add_entry(jobtitles[0][0]) # comment out this line if you want to test the scraper without getting errors
+            Database.add_entry(jobtitles)
             # ad logic to check if page is the same as the precedent page
             # so I stop stop scraping once I hit the last page
 
@@ -50,18 +51,14 @@ class Database(object):
     @staticmethod
     def add_entry(jobtitles):
         conn = sqlite3.connect('jobs.db')
-        c = conn.cursor()
+         with conn:
+            c = conn.cursor()
+            # Create table if needed
+            table = 'CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, jobtitles TEXT)'
+            c.execute(table)
+            # Insert all data entry
+            c.executemany('''INSERT INTO jobs (jobtitles) VALUES (?)''', jobtitles)
 
-        # Create table if needed
-        table = 'CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, jobtitles TEXT)'
-        c.execute(table)
-
-        # Insert all data entry
-        c.execute('''INSERT INTO jobs (jobtitles)
-        VALUES (?)''', (jobtitles))
-
-        conn.commit()
-        c.close()
 
 
 def main():
