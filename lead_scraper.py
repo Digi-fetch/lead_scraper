@@ -31,12 +31,14 @@ class Indeed(object):
             page = requests.get(url)
             tree = html.fromstring(page.text)
             jobtitles = tree.xpath('//h2[@class="jobtitle"]/a/text()')
-            print jobtitles
+            joblinks = tree.xpath('//h2[@class="jobtitle"]/a/@href')
             # jobtitles needs to be passed as tuples not list
             jobtitles = ((job.lstrip(),) for job in jobtitles)
+            joblinks = ((job.lstrip(),) for job in joblinks)
+            # joblinks = tuple(joblinks)
             # used to cycle through pages i.e: 10=page2 20=page3 etc...
             count += 10
-            Database.add_entry(jobtitles)
+            Database.add_entry(jobtitles, joblinks)
             # ad logic to check if page is the same as the precedent page
             # so I stop stop scraping once I hit the last page
 
@@ -49,16 +51,19 @@ class Database(object):
         c = db.cursor()
 
     @staticmethod
-    def add_entry(jobtitles):
+    def add_entry(jobtitles, joblinks):
         conn = sqlite3.connect('jobs.db')
-         with conn:
+        with conn:
             c = conn.cursor()
             # Create table if needed
-            table = 'CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, jobtitles TEXT)'
+            table = 'CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, jobtitles TEXT, joblinks TEXT)'
             c.execute(table)
             # Insert all data entry
-            c.executemany('''INSERT INTO jobs (jobtitles) VALUES (?)''', jobtitles)
+            c.executemany('''INSERT INTO jobs (jobtitles, joblinks) VALUES (?,?)''', (jobtitles, joblinks))
 
+    @staticmethod
+    def filter_jobs(jobtitles):
+        print 'TEST'
 
 
 def main():
