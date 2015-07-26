@@ -1,7 +1,15 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function
 from lxml import html
 import requests
 import sqlite3
+import smtplib
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEBase import MIMEBase
+from email.MIMEText import MIMEText
+from email import Encoders
+import time
+
 
 
 class Spider(object):
@@ -21,6 +29,7 @@ class Indeed(object):
         self.city = city
         self.province = province
 
+    '''
     def crawl(self):
         count = 0
         while True:
@@ -32,43 +41,170 @@ class Indeed(object):
             tree = html.fromstring(page.text)
             jobtitles = tree.xpath('//h2[@class="jobtitle"]/a/text()')
             joblinks = tree.xpath('//h2[@class="jobtitle"]/a/@href')
+            job_descriptions = tree.xpath('//span[@class="summary"]/text()')
+            # print(job_descriptions, 'testing job descriptions')
             # jobtitles needs to be passed as tuples not list
             jobtitles = ((job.lstrip(),) for job in jobtitles)
             joblinks = ((job.lstrip(),) for job in joblinks)
-            # joblinks = tuple(joblinks)
+            job_descriptions = ((job.lstrip(),) for job in job_descriptions)
+            # print next(jobtitles)
+            # inner method turns generators into tuples
+            # outer method takes the tuple and adds it to the db
+            Database.add_entry(self.data_to_tuple(jobtitles, joblinks, job_descriptions))
+            # print jobtitles
             # used to cycle through pages i.e: 10=page2 20=page3 etc...
             count += 10
-            Database.add_entry(jobtitles, joblinks)
             # ad logic to check if page is the same as the precedent page
             # so I stop stop scraping once I hit the last page
+        '''
+    def crawl(self):
+        # count starts at first page
+        crawling = True
+        count = 10
+        time.sleep(1)
+        while crawling:
+            searchterm = self.searchterm
+            city = self.city
+            prov = self.province
+            url = "http://ca.indeed.com/jobs?q="+searchterm+'&l='+city+"%2C+"+prov+'&start='+str(count)
+            print(url, 'current URL')
+            page = requests.get(url)
+            tree = html.fromstring(page.text)
+            jobtitles = tree.xpath('//h2[@class="jobtitle"]/a/text()')
+            joblinks = tree.xpath('//h2[@class="jobtitle"]/a/@href')
+            job_descriptions = tree.xpath('//span[@class="summary"]/text()')
+            # jobtitles needs to be passed as tuples not list
+            jobtitles = ((job.lstrip(),) for job in jobtitles)
+            joblinks = ((job.lstrip(),) for job in joblinks)
+            job_descriptions = ((job.lstrip(),) for job in job_descriptions)
+            # inner method turns generators into tuples
+            # outer method takes the tuple and adds it to the db
+            Database.add_entry(self.data_to_tuple(jobtitles, joblinks, job_descriptions))
+            link_pages = tree.xpath('//div[@class="pagination"]/a/@href')
+            print(link_pages, 'link_pages')
+
+            # look for next button
+            # if no longer present it means we have reached the last page
+            page_source = (page.text).encode('UTF-8')
+            if '<span class=np>Next&nbsp;' in page_source:
+                print('found next')
+            else:
+                print('Hit last page, crawler will stop...')
+                crawling = False
+
+            for page in link_pages:
+                # takes digits from end of url
+                # takes last 6 characters, unlikely that the number would be any bigger
+                p = page[-6:]
+                digits_url = ''.join([d for d in p if d.isdigit()])
+                try:
+                    # print(p, 'last 6 chr of page')
+                    # digits_url = ''.join([d for d in p if d.isdigit()])
+                    print(digits_url, 'digits url')
+                    # if int(page[-2:]) > count:
+                    if digits_url > count:
+                        print(page, 'page')
+                        # count = int(page[-2:])
+                        count = int(digits_url)
+                        print(count, 'count')
+                    else:
+                        print('You probably broke your conditional statement...')
+                        print(digits_url, 'current count {}'.format(count))
+                except ValueError:
+                    # print("We're on the first page so no int in the page url")
+                    print('This failed', digits_url)
+
+    def compare_last_page(self, page):
+        """Verifies if current page is the same as precedent page.
+         Used to stop scraping when at last page"""
+        pass
+
+    def data_to_tuple(self, jobtitles, joblinks, job_descriptions):
+        indeed_url = 'indeed.ca'
+        alist = []
+        for i in next(jobtitles):
+            for e in next(joblinks):
+                for d in next(job_descriptions):
+                    alist.append((i, indeed_url+e, d))
+        return tuple(alist)
 
 
 class Database(object):
-    """jobsite paremeter is name of the job website. there will be 1 db for each job website"""
-    def __init__(self, jobsite):
-        # unused for now
-        db = sqlite3.connect(jobsite+'.db')
-        c = db.cursor()
-
     @staticmethod
-    def add_entry(jobtitles, joblinks):
+    def add_entry(job_offers):
         conn = sqlite3.connect('jobs.db')
         with conn:
             c = conn.cursor()
             # Create table if needed
-            table = 'CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, jobtitles TEXT, joblinks TEXT)'
+            table = 'CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, job_titles TEXT, job_links TEXT, job_descriptions TEXT)'
             c.execute(table)
             # Insert all data entry
-            c.executemany('''INSERT INTO jobs (jobtitles, joblinks) VALUES (?,?)''', (jobtitles, joblinks))
+            c.executemany('''INSERT INTO jobs (job_titles, job_links, job_descriptions) VALUES (?,?,?)''', job_offers)
 
     @staticmethod
-    def filter_jobs(jobtitles):
-        print 'TEST'
+    def filter_jobs(search_term):
+        """searches the sql db for a job keyword.
+        Prints out the entire row for each match
+        """
+        conn = sqlite3.connect('jobs.db')
+        with conn:
+            c = conn.cursor()
+            c.execute('''SELECT * FROM jobs''')
+            search_title = [row for row in c if search_term.lower() in row[1].lower()]
+            # Need another c.execute otherwise I can't access the db a second time
+            c.execute('''SELECT * FROM jobs''')
+            search_desc = [col for col in c if search_term.lower() in col[3].lower()]
+            search_terms = [search_title, search_desc]
+            # print search_desc, 'DESC'
+            # print search_title, 'TITLE'
+            # Removes doubles. there can be doubles if keywords match both job_title and job_desc for the same job
+            search_terms = set(tuple(i) for i in search_terms)
+
+            try:
+                print(search_terms)
+                return search_terms
+            except IndexError:
+                print('Search term is most likely not in the database.' \
+                      '\nTry scraping for the search term before running send_mail module.')
+
+
+def send_mail(recipient, jobs):
+    """Email module works as long as I don't use yahoo. gmail works as an alternative"""
+    str_jobs = ''
+    for c in str(jobs):
+        str_jobs += c
+    str_jobs = str_jobs.encode('utf-8')
+
+    To = recipient
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = 'Job found matching {} description.'
+    msg['From'] = sender
+    msg['To'] = recipient
+    body = MIMEText(str_jobs, 'plain', 'UTF-8')
+    msg.attach(body)
+
+    # yahoo is the problem use google or another smtp provider
+    # server = smtplib.SMTP('smtp.mail.yahoo.com', 587)
+    server = smtplib.SMTP('smtp-mail.outlook.com', 25)
+    server.ehlo()
+    server.starttls()
+    server.ehlo()
+    server.login(sender, password)
+    print('sending mail..')
+    server.sendmail(sender, [To], msg.as_string())
+    print('mail sent')
+    server.quit()
+    # print 'done sending mail...'
 
 
 def main():
-    test = Indeed('it', 'toronto', 'ON')
+    """Run test object first to scrape and populatre SQL DB
+    then run Database.filter_jobs to find what you're looking for"""
+    test = Indeed('it', 'Vancouver', 'BC')
     test.crawl()
+    # search_terms = Database.filter_jobs('trainsim')
+    # search_terms = Database.filter_jobs
+    # send_mail('recipient@email.com', search_terms('manager'))
 
 
 if __name__ == '__main__':

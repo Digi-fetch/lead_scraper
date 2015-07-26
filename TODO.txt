@@ -1,0 +1,4 @@
+1. Find a better way to check if we're on the last page.
+   Atm its inefficient since I check the entire source of the page
+
+2.
