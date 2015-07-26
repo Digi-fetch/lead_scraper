@@ -29,38 +29,10 @@ class Indeed(object):
         self.city = city
         self.province = province
 
-    '''
-    def crawl(self):
-        count = 0
-        while True:
-            searchterm = self.searchterm
-            city = self.city
-            prov = self.province
-            url = "http://ca.indeed.com/jobs?q="+searchterm+'&l='+city+"%2C+"+prov+'&start='+str(count)
-            page = requests.get(url)
-            tree = html.fromstring(page.text)
-            jobtitles = tree.xpath('//h2[@class="jobtitle"]/a/text()')
-            joblinks = tree.xpath('//h2[@class="jobtitle"]/a/@href')
-            job_descriptions = tree.xpath('//span[@class="summary"]/text()')
-            # print(job_descriptions, 'testing job descriptions')
-            # jobtitles needs to be passed as tuples not list
-            jobtitles = ((job.lstrip(),) for job in jobtitles)
-            joblinks = ((job.lstrip(),) for job in joblinks)
-            job_descriptions = ((job.lstrip(),) for job in job_descriptions)
-            # print next(jobtitles)
-            # inner method turns generators into tuples
-            # outer method takes the tuple and adds it to the db
-            Database.add_entry(self.data_to_tuple(jobtitles, joblinks, job_descriptions))
-            # print jobtitles
-            # used to cycle through pages i.e: 10=page2 20=page3 etc...
-            count += 10
-            # ad logic to check if page is the same as the precedent page
-            # so I stop stop scraping once I hit the last page
-        '''
     def crawl(self):
         # count starts at first page
         crawling = True
-        count = 10
+        count = 0
         time.sleep(1)
         while crawling:
             searchterm = self.searchterm
@@ -85,6 +57,7 @@ class Indeed(object):
 
             # look for next button
             # if no longer present it means we have reached the last page
+            # try ('//div[@class="pagination"]/span/span/text()') to find it faster
             page_source = (page.text).encode('UTF-8')
             if '<span class=np>Next&nbsp;' in page_source:
                 print('found next')
@@ -114,10 +87,6 @@ class Indeed(object):
                     # print("We're on the first page so no int in the page url")
                     print('This failed', digits_url)
 
-    def compare_last_page(self, page):
-        """Verifies if current page is the same as precedent page.
-         Used to stop scraping when at last page"""
-        pass
 
     def data_to_tuple(self, jobtitles, joblinks, job_descriptions):
         indeed_url = 'indeed.ca'
@@ -126,7 +95,9 @@ class Indeed(object):
             for e in next(joblinks):
                 for d in next(job_descriptions):
                     alist.append((i, indeed_url+e, d))
+        print(alist)
         return tuple(alist)
+
 
 
 class Database(object):

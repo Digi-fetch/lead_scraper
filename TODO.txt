@@ -1,4 +1,8 @@
 1. Find a better way to check if we're on the last page.
    Atm its inefficient since I check the entire source of the page
 
-2.
+2. Remove duplicates or prevent duplicates
+   i. Either remove them after the scraping
+  ii. Actively check each new entry with ones already in the db to prevent dups
+
+
