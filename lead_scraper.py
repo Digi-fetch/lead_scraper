@@ -60,7 +60,7 @@ class Indeed(object):
             # try ('//div[@class="pagination"]/span/span/text()') to find it faster
             page_source = (page.text).encode('UTF-8')
             if '<span class=np>Next&nbsp;' in page_source:
-                print('found next')
+                print('found next will continue scraping...')
             else:
                 print('Hit last page, crawler will stop...')
                 crawling = False
@@ -87,7 +87,6 @@ class Indeed(object):
                     # print("We're on the first page so no int in the page url")
                     print('This failed', digits_url)
 
-
     def data_to_tuple(self, jobtitles, joblinks, job_descriptions):
         indeed_url = 'indeed.ca'
         alist = []
@@ -97,7 +96,6 @@ class Indeed(object):
                     alist.append((i, indeed_url+e, d))
         print(alist)
         return tuple(alist)
-
 
 
 class Database(object):
