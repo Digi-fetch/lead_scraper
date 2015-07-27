@@ -7,3 +7,6 @@
 
 
 3. Prepend the indeed.ca url to the job listings urls
+
+4. Fix descriptions they don't match the job titles
+   i. Description text ends up splitting to multiple job titles

@@ -32,7 +32,7 @@ class Indeed(object):
     def crawl(self):
         # count starts at first page
         crawling = True
-        count = 0
+        count = 970
         time.sleep(1)
         while crawling:
             searchterm = self.searchterm
@@ -61,12 +61,13 @@ class Indeed(object):
             Database.add_entry(zip(jobtitles, joblinks, job_descriptions))
             link_pages = tree.xpath('//div[@class="pagination"]/a/@href')
             print(link_pages, 'link_pages')
-
             # look for next button
             # if no longer present it means we have reached the last page
-            # try ('//div[@class="pagination"]/span/span/text()') to find it faster
-            page_source = page.text.encode('UTF-8')
-            if '<span class=np>Next&nbsp;' in page_source:
+            next_button = tree.xpath('//*[@id="resultsCol"]/div/a/span/span/text()')
+            next_button_str = ''.join(next_button)
+            print(next_button)
+
+            if u'Next' in next_button_str:
                 print('found next will continue scraping...')
             else:
                 print('Hit last page, crawler will stop...')
