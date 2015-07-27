@@ -45,19 +45,9 @@ class Indeed(object):
             jobtitles = tree.xpath('//h2[@class="jobtitle"]/a/text()')
             joblinks = tree.xpath('//h2[@class="jobtitle"]/a/@href')
             job_descriptions = tree.xpath('//span[@class="summary"]/text()')
-            # jobtitles needs to be passed as tuples not list
-            # jobtitles = ((job.lstrip(),) for job in jobtitles)
-            # joblinks = ((job.lstrip(),) for job in joblinks)
-            # job_descriptions = ((job.lstrip(),) for job in job_descriptions)
-
             jobtitles = (job.lstrip() for job in jobtitles)
             joblinks = (job.lstrip() for job in joblinks)
             job_descriptions = (job.lstrip() for job in job_descriptions)
-
-            # inner method turns generators into tuples
-            # outer method takes the tuple and adds it to the db
-            # Database.add_entry(self.data_to_tuple(jobtitles, joblinks, job_descriptions))
-
             Database.add_entry(zip(jobtitles, joblinks, job_descriptions))
             link_pages = tree.xpath('//div[@class="pagination"]/a/@href')
             print(link_pages, 'link_pages')
@@ -79,13 +69,9 @@ class Indeed(object):
                 p = page[-6:]
                 digits_url = ''.join([d for d in p if d.isdigit()])
                 try:
-                    # print(p, 'last 6 chr of page')
-                    # digits_url = ''.join([d for d in p if d.isdigit()])
                     print(digits_url, 'digits url')
-                    # if int(page[-2:]) > count:
                     if digits_url > count:
                         print(page, 'page')
-                        # count = int(page[-2:])
                         count = int(digits_url)
                         print(count, 'count')
                     else:
@@ -94,16 +80,6 @@ class Indeed(object):
                 except ValueError:
                     # print("We're on the first page so no int in the page url")
                     print('This failed', digits_url)
-
-    def data_to_tuple(self, jobtitles, joblinks, job_descriptions):
-        indeed_url = 'indeed.ca'
-        alist = []
-        for i in next(jobtitles):
-            for e in next(joblinks):
-                for d in next(job_descriptions):
-                    alist.append((i, indeed_url+e, d))
-        print(alist)
-        return tuple(alist)
 
 
 class Database(object):
