@@ -57,6 +57,7 @@ class Indeed(object):
             # inner method turns generators into tuples
             # outer method takes the tuple and adds it to the db
             # Database.add_entry(self.data_to_tuple(jobtitles, joblinks, job_descriptions))
+
             Database.add_entry(zip(jobtitles, joblinks, job_descriptions))
             link_pages = tree.xpath('//div[@class="pagination"]/a/@href')
             print(link_pages, 'link_pages')

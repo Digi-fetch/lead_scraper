@@ -6,3 +6,4 @@
   ii. Actively check each new entry with ones already in the db to prevent dups
 
 
+3. Prepend the indeed.ca url to the job listings urls
