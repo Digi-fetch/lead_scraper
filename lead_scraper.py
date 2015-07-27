@@ -46,19 +46,25 @@ class Indeed(object):
             joblinks = tree.xpath('//h2[@class="jobtitle"]/a/@href')
             job_descriptions = tree.xpath('//span[@class="summary"]/text()')
             # jobtitles needs to be passed as tuples not list
-            jobtitles = ((job.lstrip(),) for job in jobtitles)
-            joblinks = ((job.lstrip(),) for job in joblinks)
-            job_descriptions = ((job.lstrip(),) for job in job_descriptions)
+            # jobtitles = ((job.lstrip(),) for job in jobtitles)
+            # joblinks = ((job.lstrip(),) for job in joblinks)
+            # job_descriptions = ((job.lstrip(),) for job in job_descriptions)
+
+            jobtitles = (job.lstrip() for job in jobtitles)
+            joblinks = (job.lstrip() for job in joblinks)
+            job_descriptions = (job.lstrip() for job in job_descriptions)
+
             # inner method turns generators into tuples
             # outer method takes the tuple and adds it to the db
-            Database.add_entry(self.data_to_tuple(jobtitles, joblinks, job_descriptions))
+            # Database.add_entry(self.data_to_tuple(jobtitles, joblinks, job_descriptions))
+            Database.add_entry(zip(jobtitles, joblinks, job_descriptions))
             link_pages = tree.xpath('//div[@class="pagination"]/a/@href')
             print(link_pages, 'link_pages')
 
             # look for next button
             # if no longer present it means we have reached the last page
             # try ('//div[@class="pagination"]/span/span/text()') to find it faster
-            page_source = (page.text).encode('UTF-8')
+            page_source = page.text.encode('UTF-8')
             if '<span class=np>Next&nbsp;' in page_source:
                 print('found next will continue scraping...')
             else:
