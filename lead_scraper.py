@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 from lxml import html
+from lxml.html.clean import Cleaner
+import lxml
 import requests
 import sqlite3
 import smtplib
@@ -32,22 +34,27 @@ class Indeed(object):
     def crawl(self):
         # count starts at first page
         crawling = True
-        count = 970
+        count = 0
         time.sleep(1)
         while crawling:
             searchterm = self.searchterm
             city = self.city
             prov = self.province
-            url = "http://ca.indeed.com/jobs?q="+searchterm+'&l='+city+"%2C+"+prov+'&start='+str(count)
+            # url = "http://ca.indeed.com/jobs?q="+searchterm+'&l='+city+"%2C+"+prov+'&start='+str(count)
+            url = "http://ca.indeed.com/jobs?q={0}&l=+{1}+%2C{2}&start={3}".format(searchterm, city, prov, str(count))
             print(url, 'current URL')
             page = requests.get(url)
             tree = html.fromstring(page.text)
+            # cleans html by removing <b></b> tags in the description
+            cleaner = Cleaner()
+            cleaner.remove_tags = ['b']
+            tree = cleaner.clean_html(tree)
             jobtitles = tree.xpath('//h2[@class="jobtitle"]/a/text()')
             joblinks = tree.xpath('//h2[@class="jobtitle"]/a/@href')
             job_descriptions = tree.xpath('//span[@class="summary"]/text()')
             jobtitles = (job.lstrip() for job in jobtitles)
             joblinks = (job.lstrip() for job in joblinks)
-            job_descriptions = (job.lstrip() for job in job_descriptions)
+            job_descriptions = (job for job in job_descriptions)
             Database.add_entry(zip(jobtitles, joblinks, job_descriptions))
             link_pages = tree.xpath('//div[@class="pagination"]/a/@href')
             print(link_pages, 'link_pages')
@@ -162,3 +169,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
