@@ -1,5 +1,5 @@
 1. Find a better way to check if we're on the last page.
-   Atm its inefficient since I check the entire source of the page
+   - DONE
 
 2. Remove duplicates or prevent duplicates
    i. Either remove them after the scraping
@@ -9,4 +9,4 @@
 3. Prepend the indeed.ca url to the job listings urls
 
 4. Fix descriptions they don't match the job titles
-   i. Description text ends up splitting to multiple job titles
+   - DONE

@@ -35,7 +35,7 @@ class Indeed(object):
         # count starts at first page
         crawling = True
         count = 0
-        time.sleep(1)
+        time.sleep(5)
         while crawling:
             searchterm = self.searchterm
             city = self.city
@@ -46,6 +46,7 @@ class Indeed(object):
             page = requests.get(url)
             tree = html.fromstring(page.text)
             # cleans html by removing <b></b> tags in the description
+            # These tags caused a bug where the descriptions were fragmented on multiple rows
             cleaner = Cleaner()
             cleaner.remove_tags = ['b']
             tree = cleaner.clean_html(tree)
@@ -159,8 +160,11 @@ def send_mail(recipient, jobs):
 
 def main():
     """Run test object first to scrape and populatre SQL DB
-    then run Database.filter_jobs to find what you're looking for"""
-    test = Indeed('it', 'Vancouver', 'BC')
+    then run Database.filter_jobs to find what you're looking for
+
+    ex: Indeed(job, city, province/state)
+    """
+    test = Indeed('it', 'Montréal', 'QC')
     test.crawl()
     # search_terms = Database.filter_jobs('trainsim')
     # search_terms = Database.filter_jobs
