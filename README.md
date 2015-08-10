@@ -1,4 +1,4 @@
-Indeed Job scraper
+#Indeed Job scraper
 
 Tested on python2.7 on windows
 
